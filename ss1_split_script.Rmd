@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(hBayesDM)
+```
+```{r}
+full_stress.data <- "full_data_high_ss1.txt"
+full_nostress.data <- "full_data_low_ss1.txt"
+B1_stress.data <- "env1_data_high_ss1.txt"
+B1_nostress.data <- "env1_data_low_ss1.txt"
+B2_stress.data <- "env2_data_high_ss2.txt"
+B2_nostress.data <- "env2_data_low_ss2.txt"
+B3_stress.data <- "env3_data_high_ss3.txt"
+B3_nostress.data <- "env3_data_low_ss4.txt"
+B4_stress.data <- "env4_data_high_ss4.txt"
+B4_nostress.data <- "env4_data_low_ss4.txt"
+```
+```{r}
+model4.full_stress <- banditNarm_lapse(data = full_stress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.full_stress, file = "model4.full_stress.rds")
+model4.full_nostress <- banditNarm_lapse(data = full_nostress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.full_nostress, file = "model4.full_nostress.rds")
+
+model4.env1_stress <- banditNarm_lapse(data = B1_stress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.env1_stress, file = "model4.env1_stress.rds")
+model4.env1_nostress <- banditNarm_lapse(data = B1_nostress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.env1_nostress, file = "model4.env1_nostress.rds")
+```
+```{r}
+model4.env2_stress <- banditNarm_lapse(data = B2_stress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.env2_stress, file = "model4.env2_stress.rds")
+model4.env2_nostress <- banditNarm_lapse(data = B2_nostress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.env2_nostress, file = "model4.env2_nostress.rds")
+
+model4.env3_stress <- banditNarm_lapse(data = B3_stress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.env3_stress, file = "model4.env3_stress.rds")
+model4.env3_nostress <- banditNarm_lapse(data = B3_nostress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.env3_nostress, file = "model4.env3_nostress.rds")
+
+model4.env4_stress <- banditNarm_lapse(data = B4_stress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.env4_stress, file = "model4.env4_stress.rds")
+model4.env4_nostress <- banditNarm_lapse(data = B4_nostress.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 8)
+saveRDS(model4.env4_nostress, file = "model4.env4_nostress.rds")
+```
+```{r}
+plot(model4.env4_nostress, type="trace")
+```
+```{r}
+rhat_full_stress = rhat(model4.env4_stress)
+write.csv(rhat_full_stress, "rhat_env4_stress.csv", row.names = TRUE)
+rhat_full_nostress = rhat(model4.env4_nostress)
+write.csv(rhat_full_nostress, "rhat_env4_nostress.csv", row.names = TRUE)
+```
+```{r}
+write.csv(model4.env4_stress$allIndPars, "individual_parameters_env4_stress.csv", row.names = FALSE)
+write.csv(model4.env4_nostress$allIndPars, "individual_parameters_env4_nostress.csv", row.names = FALSE)
+```
+```{r}
+waic1 = printFit(model4.full_stress, model4.full_nostress, model4.env1_stress, model4.env1_nostress, model4.env2_stress, model4.env2_nostress, model4.env3_stress, model4.env3_nostress, model4.env4_stress, model4.env4_nostress)
+write.csv(waic1, "looic_stress_split.csv", row.names = FALSE)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

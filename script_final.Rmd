@@ -1,0 +1,163 @@
+---
+title: "hBayesDM-banditnarm_lapse"
+output: html_document
+date: "2025-04-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(hBayesDM)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+full.data <- "full_data.txt"
+B1.data <- "env1.txt"
+B2.data <- "env2.txt"
+B3.data <- "env3.txt"
+B4.data <- "env4.txt"
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+model3.full <- banditNarm_lapse(data = full.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 4)
+saveRDS(model3.full, file = "model3.full.rds")
+
+model3.B1 <- banditNarm_lapse(data = B1.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 4)
+saveRDS(model3.B1, file = "model3.B1.rds")
+
+model3.B2 <- banditNarm_lapse(data = B2.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 4)
+saveRDS(model3.B2, file = "model3.B2.rds")
+
+model3.B3 <- banditNarm_lapse(data = B3.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 4)
+saveRDS(model3.B3, file = "model3.B3.rds")
+
+model3.B4 <- banditNarm_lapse(data = B4.data, niter = 4000, nwarmup = 1000, nchain = 4, ncore = 4)
+saveRDS(model3.B4, file = "model3.B4.rds")
+```
+```{r}
+rhat_full = rhat(model3.full)
+write.csv(rhat_full, "rhat_full.csv", row.names = TRUE)
+```
+```{r}
+rhat_4 = rhat(model3.B4)
+write.csv(rhat_4, "rhat_B4.csv", row.names = TRUE)
+```
+
+
+```{r}
+write.csv(model3.B4$allIndPars, "individual_parameters_B4.csv", row.names = FALSE)
+```
+
+
+```{r}
+plot(model3.B4, type = "trace")
+```
+```{r}
+write.csv(model3.B4$parVals, "posterior_distribution_B4.csv", row.names = FALSE)
+```
+
+
+```{r}
+waic1 = printFit(model3.full, model3.B1, model3.B2, model3.B3, model3.B4, ic="waic")
+write.csv(waic1, "waic.csv", row.names = FALSE)
+```
+```{r}
+# Load required libraries
+library(bayesplot)
+
+library(gridExtra)  # for arranging multiple plots
+
+# Extract posterior samples from the model
+draws <- as.data.frame(model3.B4$parVals)
+
+# List of parameters you want to plot
+params_to_plot <- c("mu_Arew", "mu_Apun", "mu_R", "mu_P", "mu_xi")
+
+plot_list <- lapply(params_to_plot, function(param) {
+  mcmc_areas(draws, pars = param) + ggtitle(paste("Posterior of", param))
+})
+
+# Arrange plots in a grid
+grid.arrange(grobs = plot_list, ncol = 2)
+
+```
+```{r}
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(tidyr)
+
+# Read the CSV files
+b1_data <- "individual_parameters_B1.csv"
+b2_data <- "individual_parameters_B2.csv" 
+b3_data <- "individual_parameters_B3.csv"
+b4_data <- "individual_parameters_B4.csv"
+# Extract punishment learning rates (Apun)
+# B1: fast vol, high stoch
+# B2: slow vol high stoch
+# B3: fast vol low stoch
+# B4: slow vol low stoch
+
+# Calculate means and standard errors
+b1_mean <- mean(b1_data$Apun)
+b1_se <- sd(b1_data$Apun) / sqrt(nrow(b1_data))
+
+b2_mean <- mean(b2_data$Apun)
+b2_se <- sd(b2_data$Apun) / sqrt(nrow(b2_data))
+
+b3_mean <- mean(b3_data$Apun)
+b3_se <- sd(b3_data$Apun) / sqrt(nrow(b3_data))
+
+b4_mean <- mean(b4_data$Apun)
+b4_se <- sd(b4_data$Apun) / sqrt(nrow(b4_data))
+
+# Create a data frame for plotting
+plot_data <- data.frame(
+  Stochasticity = factor(c("High", "High", "Low", "Low"), levels = c("Low", "High")),
+  Volatility = factor(c("Fast", "Slow", "Fast", "Slow"), levels = c("Slow", "Fast")),
+  Mean = c(b1_mean, b2_mean, b3_mean, b4_mean),
+  SE = c(b1_se, b2_se, b3_se, b4_se)
+)
+
+# Generate colors based on stochasticity level
+get_color <- function(stoch_level) {
+  if (stoch_level == "Low") {
+    return("steelblue")
+  } else {
+    return("lightblue")
+  }
+}
+
+plot_data$Color <- sapply(as.character(plot_data$Stochasticity), get_color)
+
+# Create the plot
+ggplot(plot_data, aes(x = Stochasticity, y = Mean, color = Stochasticity)) +
+  geom_point(aes(shape = Volatility), size = 3, position = position_dodge(width = 0.3)) +
+  geom_errorbar(
+    aes(ymin = Mean - SE, ymax = Mean + SE, linetype = Volatility),
+    width = 0.2, position = position_dodge(width = 0.3)
+  ) +
+  scale_color_manual(values = c("Low" = "steelblue", "High" = "lightblue")) +
+  scale_linetype_manual(values = c("Slow" = "dashed", "Fast" = "solid")) +
+  scale_shape_manual(values = c("Slow" = 16, "Fast" = 16)) +  # Both use circle shape
+  labs(y = "Punishment Learning Rate (Apun)") +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    axis.title.x = element_blank(),
+    text = element_text(size = 12)
+  )
+
+# Print summary statistics
+print(plot_data)
+```
+
